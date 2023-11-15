@@ -17,14 +17,6 @@
 	<PropertyGroup>
 		<Cities2_Location>D:\Steam\steamapps\common\Cities Skylines II</Cities2_Location>
 	</PropertyGroup>
-	
-	<ItemGroup>
-	  <None Remove="Resources\additiveshader" />
-	  <None Remove="Resources\additiveshader.manifest" />
-	  <None Remove="Resources\ui.css" />
-	  <None Remove="Resources\ui.html" />
-	  <None Remove="Resources\ui.js" />
-	</ItemGroup>
 
 	<ItemGroup>
 		<Reference Include="Colossal.AssetPipeline">
