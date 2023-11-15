@@ -1,21 +1,10 @@
 ﻿using CustomRadio.MonoBehaviours;
-using Game.Audio;
+
 using Game.Audio.Radio;
 using HarmonyLib;
-using System.Diagnostics;
 using UnityEngine;
 
 namespace CustomRadio.Patches;
-
-[HarmonyPatch(typeof(AudioManager), "OnGameLoaded")]
-internal class AudioManagerOnGameLoadedPatch
-{
-    static void Postfix()
-    {
-        GameObject musicLoader = new GameObject("MusicLoader");
-        musicLoader.AddComponent<MusicLoader>();
-    }
-}
 
 [HarmonyPatch(typeof(Radio.RadioPlayer), "Play")]
 internal class RadioPlayerPlayPatch
@@ -27,30 +16,22 @@ internal class RadioPlayerPlayPatch
         AudioSource mAudioSource = Traverse.Create(__instance).Field("m_AudioSource").GetValue<AudioSource>();
 
         if(mAudioSource == null)
-        {
             return false;
-        }
 
         if(_MusicLoader == null)
-        {
             _MusicLoader = GameObject.Find("MusicLoader").GetComponent<MusicLoader>();
-        }
 
-        if(_MusicLoader == null)
-        {
+        if(_MusicLoader == null || MusicLoader.CurrentChannel != MusicLoader.DefaultChannel)
             mAudioSource.clip = clip;
-        }
         else
-        {
-            mAudioSource.clip = _MusicLoader.GetRandomClip() ?? clip;
-        }
+            mAudioSource.clip = _MusicLoader.GetCurrentClip() ?? clip;
 
         mAudioSource.timeSamples = timeSamples;
         mAudioSource.Play();
 
         Traverse.Create(__instance).Field("m_Elapsed").SetValue(GetAudioSourceTimeElapsed(__instance, mAudioSource));
 
-        Stopwatch mTimer = Traverse.Create(__instance).Field("m_Timer").GetValue<Stopwatch>();
+        System.Diagnostics.Stopwatch mTimer = Traverse.Create(__instance).Field("m_Timer").GetValue<System.Diagnostics.Stopwatch>();
         mTimer.Restart();
 
         return false;
