@@ -8,8 +8,12 @@ namespace CustomRadio.MonoBehaviours;
 
 public class MusicLoader : MonoBehaviour
 {
+    public const string DefaultChannel = "The Second Moon";
+
     private readonly List<AudioClip> AudioClips = new List<AudioClip>( );
     private readonly string AssemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
+    public static int CurrentIndex { set; get; }
+    public static string CurrentChannel { set; get; }
 
     private void Start()
     {
@@ -36,6 +40,9 @@ public class MusicLoader : MonoBehaviour
         {
             StartCoroutine(LoadAudioClip(musicFile));
         }
+
+        CurrentIndex = 0;
+        CurrentChannel = DefaultChannel;
     }
 
     private IEnumerator LoadAudioClip(string filePath)
@@ -55,11 +62,18 @@ public class MusicLoader : MonoBehaviour
         }
     }
 
-    public AudioClip GetRandomClip()
+    public AudioClip GetCurrentClip()
     {
-        if(AudioClips.Count <= 0) return null;
+        if(CurrentIndex < 0)
+        {
+            CurrentIndex = AudioClips.Count - 1;
+        }
 
-        int randomIndex = Random.Range(0, AudioClips.Count);
-        return AudioClips[randomIndex];
+        if(CurrentIndex > AudioClips.Count - 1)
+        {
+            CurrentIndex = 0;
+        }
+
+        return AudioClips[CurrentIndex];
     }
 }
