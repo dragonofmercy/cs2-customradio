@@ -1,4 +1,5 @@
-﻿using CustomRadio.MonoBehaviours;
+﻿using System.Collections.Generic;
+using CustomRadio.MonoBehaviours;
 using Game.Audio.Radio;
 using HarmonyLib;
 using UnityEngine;
@@ -50,7 +51,11 @@ internal class RadioNextSongPatch
 {
     static bool Prefix()
     {
-        MusicLoader.CurrentIndex++;
+        if(MusicLoader.CurrentChannel == MusicLoader.DefaultChannel)
+        {
+            MusicLoader.CurrentIndex++;
+        }
+
         return true;
     }
 }
@@ -58,9 +63,13 @@ internal class RadioNextSongPatch
 [HarmonyPatch(typeof(Radio), "PreviousSong")]
 internal class RadioPreviousSongPatch
 {
-    static bool Prefix()
+    static bool Prefix(Radio __instance)
     {
+        if(MusicLoader.CurrentChannel != MusicLoader.DefaultChannel) return true;
+        Radio.RadioPlayer mRadioPlayer = Traverse.Create(__instance).Field("m_RadioPlayer").GetValue<Radio.RadioPlayer>();
         MusicLoader.CurrentIndex--;
+        mRadioPlayer.Play(null);
+
         return true;
     }
 }
