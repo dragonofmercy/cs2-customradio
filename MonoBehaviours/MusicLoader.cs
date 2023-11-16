@@ -53,7 +53,7 @@ public class MusicLoader : MonoBehaviour
 
         if(request.result == UnityWebRequest.Result.ConnectionError)
         {
-            Debug.LogError("Failed to load AudioClip from: " + filePath);
+            Debug.LogError("Failed to load AudioClip from: " + Path.GetFileName(filePath));
             Debug.Log(request.error);
         }
         else
@@ -62,7 +62,7 @@ public class MusicLoader : MonoBehaviour
                 AudioClips.Add(Path.GetFileName(filePath), DownloadHandlerAudioClip.GetContent(request));
 
             SortPlaylist();
-            Debug.Log("Loaded audio clip: " + filePath);
+            Debug.Log("Loaded audio clip: " + Path.GetFileName(filePath));
         }
     }
 
