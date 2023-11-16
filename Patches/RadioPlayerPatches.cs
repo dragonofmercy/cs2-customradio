@@ -10,6 +10,7 @@ namespace CustomRadio.Patches;
 internal class RadioPlayerPlayPatch
 {
     private static MusicLoader _MusicLoader;
+    private static int? _CurrentlyPlaying;
 
     static bool Prefix(Radio __instance, AudioClip clip, int timeSamples = 0)
     {
@@ -21,6 +22,9 @@ internal class RadioPlayerPlayPatch
         if(_MusicLoader == null)
             _MusicLoader = GameObject.Find("MusicLoader").GetComponent<MusicLoader>();
 
+        if(_CurrentlyPlaying != null && _CurrentlyPlaying == MusicLoader.CurrentIndex)
+            MusicLoader.CurrentIndex++;
+
         if(_MusicLoader == null || MusicLoader.CurrentChannel != MusicLoader.DefaultChannel)
             mAudioSource.clip = clip;
         else
@@ -29,10 +33,14 @@ internal class RadioPlayerPlayPatch
         mAudioSource.timeSamples = timeSamples;
         mAudioSource.Play();
 
+        _CurrentlyPlaying = MusicLoader.CurrentIndex;
+
         Traverse.Create(__instance).Field("m_Elapsed").SetValue(GetAudioSourceTimeElapsed(__instance, mAudioSource));
 
         System.Diagnostics.Stopwatch mTimer = Traverse.Create(__instance).Field("m_Timer").GetValue<System.Diagnostics.Stopwatch>();
         mTimer.Restart();
+
+
 
         return false;
     }
