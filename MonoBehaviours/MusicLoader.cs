@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -10,8 +11,8 @@ public class MusicLoader : MonoBehaviour
 {
     public const string DefaultChannel = "The Second Moon";
 
-    private readonly List<AudioClip> AudioClips = new List<AudioClip>( );
     private readonly string AssemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
+    private Dictionary<string, AudioClip> AudioClips = new Dictionary<string, AudioClip>();
     public static int CurrentIndex { set; get; }
     public static string CurrentChannel { set; get; }
 
@@ -57,9 +58,19 @@ public class MusicLoader : MonoBehaviour
         }
         else
         {
-            AudioClips.Add(DownloadHandlerAudioClip.GetContent(request));
+            if(!AudioClips.ContainsKey(Path.GetFileName(filePath)))
+                AudioClips.Add(Path.GetFileName(filePath), DownloadHandlerAudioClip.GetContent(request));
+
+            SortPlaylist();
             Debug.Log("Loaded audio clip: " + filePath);
         }
+    }
+
+    private void SortPlaylist()
+    {
+        AudioClips = AudioClips
+            .OrderBy(p => p.Key)
+            .ToDictionary(p => p.Key, p => p.Value);
     }
 
     public AudioClip GetCurrentClip()
@@ -74,6 +85,6 @@ public class MusicLoader : MonoBehaviour
             CurrentIndex = 0;
         }
 
-        return AudioClips[CurrentIndex];
+        return AudioClips.ElementAt(CurrentIndex).Value;
     }
 }
