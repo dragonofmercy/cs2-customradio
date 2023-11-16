@@ -40,8 +40,6 @@ internal class RadioPlayerPlayPatch
         System.Diagnostics.Stopwatch mTimer = Traverse.Create(__instance).Field("m_Timer").GetValue<System.Diagnostics.Stopwatch>();
         mTimer.Restart();
 
-
-
         return false;
     }
 
