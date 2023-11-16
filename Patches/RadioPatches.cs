@@ -38,6 +38,7 @@ internal class RadioQueueClipPatch
 {
     static bool Prefix(ref Game.Audio.Radio.Radio.ClipInfo clip, bool pushToFront = false)
     {
+        // Play on songs for vanilla channels
         if(clip.m_SegmentType == Radio.SegmentType.Playlist) return true;
         Debug.Log("Skipped radio clip: " + clip.m_SegmentType);
         return false;
