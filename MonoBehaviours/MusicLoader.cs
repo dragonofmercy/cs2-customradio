@@ -2,6 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+
+using Game.Audio.Radio;
+
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -14,7 +17,8 @@ public class MusicLoader : MonoBehaviour
     private readonly string AssemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
     private Dictionary<string, AudioClip> AudioClips = new Dictionary<string, AudioClip>();
     public static int CurrentIndex { set; get; }
-    public static string CurrentChannel { set; get; }
+    public static int HistoryIndex { set; get; }
+    public static Radio RadioInstance { set; get; }
 
     private void Start()
     {
@@ -43,7 +47,7 @@ public class MusicLoader : MonoBehaviour
         }
 
         CurrentIndex = 0;
-        CurrentChannel = DefaultChannel;
+        HistoryIndex = -1;
     }
 
     private IEnumerator LoadAudioClip(string filePath)
@@ -59,7 +63,7 @@ public class MusicLoader : MonoBehaviour
         else
         {
             if(!AudioClips.ContainsKey(Path.GetFileName(filePath)))
-                AudioClips.Add(Path.GetFileName(filePath), DownloadHandlerAudioClip.GetContent(request));
+                AudioClips.Add(Path.GetFileNameWithoutExtension(filePath), DownloadHandlerAudioClip.GetContent(request));
 
             SortPlaylist();
             Debug.Log("Loaded audio clip: " + Path.GetFileName(filePath));
@@ -73,7 +77,7 @@ public class MusicLoader : MonoBehaviour
             .ToDictionary(p => p.Key, p => p.Value);
     }
 
-    public AudioClip GetCurrentClip()
+    private KeyValuePair<string, AudioClip> GetCurrentClip()
     {
         if(CurrentIndex < 0)
         {
@@ -85,6 +89,21 @@ public class MusicLoader : MonoBehaviour
             CurrentIndex = 0;
         }
 
-        return AudioClips.ElementAt(CurrentIndex).Value;
+        return AudioClips.ElementAt(CurrentIndex);
+    }
+
+    public AudioClip GetCurrentClipAudio()
+    {
+        return GetCurrentClip().Value;
+    }
+
+    public string GetCurrentClipName()
+    {
+        return GetCurrentClip().Key;
+    }
+
+    public static MusicLoader Instance()
+    {
+        return GameObject.Find("MusicLoader").GetComponent<MusicLoader>();
     }
 }
