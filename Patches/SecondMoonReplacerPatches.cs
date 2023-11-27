@@ -1,11 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using CustomRadio.MonoBehaviours;
 
-using Colossal.IO.AssetDatabase;
-using CustomRadio.MonoBehaviours;
+using System.Collections.Generic;
 
 using Game.Audio;
 using Game.Audio.Radio;
+using Game.UI.InGame;
 
+using Colossal.IO.AssetDatabase;
 using HarmonyLib;
 using UnityEngine;
 
@@ -36,37 +37,6 @@ internal class RadioUpdatePatch
     }
 }
 
-[HarmonyPatch(typeof(Radio), "NextSong")]
-internal class RadioNextSongPatch
-{
-    static bool Prefix(Radio __instance)
-    {
-        if(MusicLoader.RadioInstance.currentChannel.name != MusicLoader.DefaultChannel) return true;
-
-        Radio.RadioPlayer mRadioPlayer = Traverse.Create(__instance).Field("m_RadioPlayer").GetValue<Radio.RadioPlayer>();
-        MusicLoader.HistoryIndex = MusicLoader.CurrentIndex;
-        mRadioPlayer.Play(null);
-
-        return true;
-    }
-}
-
-[HarmonyPatch(typeof(Radio), "PreviousSong")]
-internal class RadioPreviousSongPatch
-{
-    static bool Prefix(Radio __instance)
-    {
-        if(MusicLoader.RadioInstance.currentChannel.name != MusicLoader.DefaultChannel) return true;
-
-        Radio.RadioPlayer mRadioPlayer = Traverse.Create(__instance).Field("m_RadioPlayer").GetValue<Radio.RadioPlayer>();
-        MusicLoader.CurrentIndex -= 2;
-        MusicLoader.HistoryIndex = MusicLoader.CurrentIndex;
-        mRadioPlayer.Play(null);
-
-        return true;
-    }
-}
-
 /// <summary>
 /// RadioPlayer patches
 /// </summary>
@@ -77,7 +47,6 @@ internal class RadioPlayerPlayPatch
 
     static bool Prefix(Radio.RadioPlayer __instance, AudioClip clip, int timeSamples = 0)
     {
-        bool custom = false;
         AudioSource mAudioSource = Traverse.Create(__instance).Field("m_AudioSource").GetValue<AudioSource>();
 
         if(clip == null)
@@ -89,45 +58,27 @@ internal class RadioPlayerPlayPatch
         if(_MusicLoader == null)
             _MusicLoader = GameObject.Find("MusicLoader").GetComponent<MusicLoader>();
 
-        if(_MusicLoader == null || MusicLoader.RadioInstance.currentChannel.name != MusicLoader.DefaultChannel)
+        if(_MusicLoader == null || MusicLoader.RadioInstance.currentChannel.name != MusicLoader.DefaultChannel || _MusicLoader.CountFiles() == 0)
         {
             mAudioSource.clip = clip;
         }
         else
         {
-            if(MusicLoader.CurrentIndex == MusicLoader.HistoryIndex)
-            {
-                MusicLoader.CurrentIndex++;
-            }
+            KeyValuePair<string, AudioClip>? musicData = _MusicLoader.GetRandomClip();
 
-            AudioClip acSong = _MusicLoader.GetCurrentClipAudio();
-
-            if(acSong == null)
+            if(musicData == null)
             {
-                acSong = clip;
+                mAudioSource.clip = null;
             }
             else
             {
-                custom = true;
-
+                mAudioSource.clip = musicData.Value.Value;
                 MusicLoader.RadioInstance.currentChannel.currentProgram.name = "Custom Music Playlist";
-                MusicLoader.RadioInstance.currentChannel.currentProgram.description = _MusicLoader.GetCurrentClipName();
-
-                Dictionary<AudioAsset.Metatag, string> mMetatags = Traverse.Create(MusicLoader.RadioInstance.currentChannel.currentProgram.currentSegment.currentClip).Field("m_Metatags").GetValue<Dictionary<AudioAsset.Metatag, string>>();
-                mMetatags[AudioAsset.Metatag.Title] = _MusicLoader.GetCurrentClipName();
-                mMetatags[AudioAsset.Metatag.Artist] = "";
             }
-
-            mAudioSource.clip = acSong;
         }
 
         mAudioSource.timeSamples = timeSamples;
         mAudioSource.Play();
-
-        if(custom)
-        {
-            MusicLoader.HistoryIndex = MusicLoader.CurrentIndex;
-        }
 
         Traverse.Create(__instance).Field("m_Elapsed").SetValue(GetAudioSourceTimeElapsed(__instance, mAudioSource));
 
@@ -141,5 +92,30 @@ internal class RadioPlayerPlayPatch
     {
         bool isCreated = Traverse.Create(__instance).Field("isCreated").GetValue<bool>();
         return isCreated && audioSource.clip != null ? audioSource.timeSamples / (double) audioSource.clip.frequency : 0.0;
+    }
+}
+
+/// <summary>
+/// RadioUISystem patches
+/// </summary>
+///
+[HarmonyPatch(typeof(RadioUISystem), "GetClipInfo")]
+internal class RadioUiSystemGetClipInfoPatch
+{
+    private static MusicLoader _MusicLoader;
+
+    static void Postfix(Game.Audio.Radio.Radio radio, AudioAsset asset, ref RadioUISystem.ClipInfo __result)
+    {
+        if(asset == null) return;
+        if(radio.currentChannel.name != MusicLoader.DefaultChannel) return;
+
+        if(_MusicLoader == null)
+            _MusicLoader = GameObject.Find("MusicLoader").GetComponent<MusicLoader>();
+
+        __result = new RadioUISystem.ClipInfo
+        {
+            title = _MusicLoader.GetCurrentClipInfo().Key,
+            info = _MusicLoader.GetCurrentClipInfo().Value
+        };
     }
 }
