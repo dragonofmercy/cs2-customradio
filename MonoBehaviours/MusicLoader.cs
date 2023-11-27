@@ -16,8 +16,7 @@ public class MusicLoader : MonoBehaviour
 
     private readonly string AssemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
     private Dictionary<string, AudioClip> AudioClips = new Dictionary<string, AudioClip>();
-    public static int CurrentIndex { set; get; }
-    public static int HistoryIndex { set; get; }
+    private int PreviousIndex;
     public static Radio RadioInstance { set; get; }
 
     private void Start()
@@ -27,14 +26,7 @@ public class MusicLoader : MonoBehaviour
         string musicDirectory = Path.Combine(Path.GetDirectoryName(AssemblyLocation), "Music");
 
         if(Directory.Exists(musicDirectory))
-        {
-            Debug.Log(musicDirectory + " Found");
             LoadAllAudioClips(musicDirectory);
-        }
-        else
-        {
-            Debug.Log("Error: " + musicDirectory + " was not found");
-        }
     }
 
     private void LoadAllAudioClips(string path)
@@ -45,9 +37,6 @@ public class MusicLoader : MonoBehaviour
         {
             StartCoroutine(LoadAudioClip(musicFile));
         }
-
-        CurrentIndex = 0;
-        HistoryIndex = -1;
     }
 
     private IEnumerator LoadAudioClip(string filePath)
@@ -77,33 +66,29 @@ public class MusicLoader : MonoBehaviour
             .ToDictionary(p => p.Key, p => p.Value);
     }
 
-    private KeyValuePair<string, AudioClip> GetCurrentClip()
+    public KeyValuePair<string, AudioClip>? GetRandomClip()
     {
-        if(CurrentIndex < 0)
+        int randomIndex;
+
+        if(AudioClips.Count <= 0) return null;
+
+        do
         {
-            CurrentIndex = AudioClips.Count - 1;
+            randomIndex = Random.Range(0, AudioClips.Count);
         }
+        while(PreviousIndex == randomIndex);
 
-        if(CurrentIndex > AudioClips.Count - 1)
-        {
-            CurrentIndex = 0;
-        }
-
-        return AudioClips.ElementAt(CurrentIndex);
+        PreviousIndex = randomIndex;
+        return AudioClips.ElementAt(randomIndex);
     }
 
-    public AudioClip GetCurrentClipAudio()
+    public int CountFiles()
     {
-        return GetCurrentClip().Value;
+        return AudioClips.Count;
     }
 
-    public string GetCurrentClipName()
+    public KeyValuePair<string, string> GetCurrentClipInfo()
     {
-        return GetCurrentClip().Key;
-    }
-
-    public static MusicLoader Instance()
-    {
-        return GameObject.Find("MusicLoader").GetComponent<MusicLoader>();
+        return new KeyValuePair<string, string>(AudioClips.ElementAt(PreviousIndex).Key, "");
     }
 }
