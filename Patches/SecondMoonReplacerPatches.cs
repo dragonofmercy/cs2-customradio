@@ -1,12 +1,13 @@
-﻿using CustomRadio.MonoBehaviours;
-
-using System.Collections.Generic;
+﻿using System;
+using CustomRadio.MonoBehaviours;
+using CustomRadio.Models;
 
 using Game.Audio;
 using Game.Audio.Radio;
 using Game.UI.InGame;
 
 using Colossal.IO.AssetDatabase;
+
 using HarmonyLib;
 using UnityEngine;
 
@@ -64,15 +65,15 @@ internal class RadioPlayerPlayPatch
         }
         else
         {
-            KeyValuePair<string, AudioClip>? musicData = _MusicLoader.GetRandomClip();
+            AudioSong song = _MusicLoader.GetRandomSong();
 
-            if(musicData == null)
+            if(song == null)
             {
                 mAudioSource.clip = null;
             }
             else
             {
-                mAudioSource.clip = musicData.Value.Value;
+                mAudioSource.clip = song.Clip;
                 MusicLoader.RadioInstance.currentChannel.currentProgram.name = "Custom Music Playlist";
             }
         }
@@ -112,10 +113,14 @@ internal class RadioUiSystemGetClipInfoPatch
         if(_MusicLoader == null)
             _MusicLoader = GameObject.Find("MusicLoader").GetComponent<MusicLoader>();
 
-        __result = new RadioUISystem.ClipInfo
-        {
-            title = _MusicLoader.GetCurrentClipInfo().Key,
-            info = _MusicLoader.GetCurrentClipInfo().Value
+        AudioSong song = _MusicLoader.GetCurrentSong();
+
+        if(song == null)
+            return;
+
+        __result = new RadioUISystem.ClipInfo {
+            title = song.Title,
+            info = song.Artist
         };
     }
 }
