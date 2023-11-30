@@ -4,7 +4,7 @@ using System.Reflection;
 
 namespace CustomRadio;
 
-[BepInPlugin("dragon.cs2.customradio", "Custom Radio", "0.0.6")]
+[BepInPlugin("dragon.cs2.customradio", "Custom Radio", "0.0.7")]
 public class Plugin : BaseUnityPlugin
 {
     private void Awake()
