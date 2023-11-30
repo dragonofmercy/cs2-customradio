@@ -418,12 +418,10 @@
 		<PackageReference Include="BepInEx.PluginInfoProps" Version="2.*" />
         <PackageReference Include="BepInEx.Core" Version="5.*" IncludeAssets="compile" />
 		<PackageReference Include="HarmonyX" Version="2.10.2" />
-		<PackageReference Include="TagLibSharp" Version="2.3.0" />
 	</ItemGroup>
 
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
         <Exec Command="if not exist &quot;$(Cities2_Location)\BepInEx\plugins\$(ProjectName)&quot; mkdir &quot;$(Cities2_Location)\BepInEx\plugins\$(ProjectName)&quot;" />
         <Exec Command="copy /Y &quot;$(TargetDir)$(ProjectName).dll&quot; &quot;$(Cities2_Location)\BepInEx\plugins\$(ProjectName)\$(ProjectName).dll&quot;" />
-        <Exec Command="copy /Y &quot;$(TargetDir)\TagLibSharp.dll&quot; &quot;$(Cities2_Location)\BepInEx\plugins\$(ProjectName)\TagLibSharp.dll&quot;" />
 	</Target>
 </Project>
