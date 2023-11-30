@@ -3,6 +3,7 @@ using CustomRadio.MonoBehaviours;
 
 using System.IO;
 using System.Reflection;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 
 using Game.Audio.Radio;
@@ -11,6 +12,7 @@ using Game.UI;
 
 using HarmonyLib;
 using UnityEngine;
+using UnityEngine.Networking;
 
 using Colossal.Json;
 using Colossal.IO.AssetDatabase;
@@ -33,6 +35,43 @@ internal class GameManagerInitializeThumbnailsPatch
                 Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
             }
         );
+    }
+}
+
+/// <summary>
+/// AudioAsset patches
+/// </summary>
+[HarmonyPatch(typeof(AudioAsset), "LoadAsync")]
+internal class AudioAssetLoadAsyncPatch
+{
+    static bool Prefix(AudioAsset __instance, ref Task<AudioClip> __result)
+    {
+        if(__instance.GetMetaTag(AudioAsset.Metatag.RadioStation) != MusicLoader.BASE_NETWORK) return true;
+        __result = LoadAudioFile(__instance);
+        return false;
+    }
+
+    private static async Task<AudioClip> LoadAudioFile(AudioAsset audioAsset)
+    {
+        Traverse audioAssetTravers = Traverse.Create(audioAsset);
+
+        if(audioAssetTravers.Field("m_Instance").GetValue() == null)
+        {
+            string sPath = audioAsset.GetMetaTag(AudioAsset.Metatag.Brand);
+            using UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + sPath, AudioType.OGGVORBIS);
+            ((DownloadHandlerAudioClip) www.downloadHandler).streamAudio = true;
+            await www.SendWebRequest();
+            AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
+            www.Dispose();
+
+            clip.name = sPath;
+            clip.hideFlags = HideFlags.DontSave;
+
+            audioAssetTravers.Field("m_Instance").SetValue(clip);
+            Debug.Log("File loaded: " + Path.GetFileName(sPath));
+        }
+
+        return (AudioClip) audioAssetTravers.Field("m_Instance").GetValue();
     }
 }
 
@@ -129,12 +168,12 @@ internal class RadioLoadRadioPatch
         string sProgramName = "Music non stop";
         string sProgramDescription = "Dance all day, dance all night";
 
-        AudioAsset[] audioAsset = MusicLoaderInstance.GetAllClips(sRadioName);
+        AudioAsset[] audioAssets = MusicLoaderInstance.GetAllClips(sRadioName);
 
         Radio.Segment segment = new(){
             type = Radio.SegmentType.Playlist,
             clipsCap = 1,
-            clips = audioAsset,
+            clips = audioAssets,
             tags = new []{
                 "type:Music",
                 "radio channel:" + sRadioName

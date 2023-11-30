@@ -5,7 +5,6 @@ using System.Linq;
 using ATL;
 using HarmonyLib;
 using UnityEngine;
-using UnityEngine.Networking;
 
 using Colossal.IO.AssetDatabase;
 
@@ -52,7 +51,7 @@ public class MusicLoader : MonoBehaviour
         metatags[AudioAsset.Metatag.Album] = track.Album;
         metatags[AudioAsset.Metatag.Artist] = track.Artist;
         metatags[AudioAsset.Metatag.Type] = "Music";
-        metatags[AudioAsset.Metatag.Brand] = "Brand";
+        metatags[AudioAsset.Metatag.Brand] = sPath;
         metatags[AudioAsset.Metatag.RadioStation] = BASE_NETWORK;
         metatags[AudioAsset.Metatag.RadioChannel] = sRadioName;
         metatags[AudioAsset.Metatag.PSAType] = "";
@@ -63,20 +62,7 @@ public class MusicLoader : MonoBehaviour
         audioAssetTravers.Field("m_Metatags").SetValue(metatags);
         audioAssetTravers.Field("m_Instance").SetValue(null);
 
-        LoadAudioFile(sPath, sRadioName);
-
         return audioAsset;
-    }
-
-    private async void LoadAudioFile(string sPath, string sRadioName)
-    {
-        using UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + sPath, AudioType.OGGVORBIS);
-        await www.SendWebRequest();
-        AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
-        www.Dispose();
-
-        Traverse.Create(AudioAssets[sRadioName][sPath]).Field("m_Instance").SetValue(clip);
-        Debug.Log("File loaded: " + Path.GetFileName(sPath));
     }
 
     public AudioAsset[] GetAllClips(string radioStation)
@@ -97,30 +83,4 @@ public class MusicLoader : MonoBehaviour
 
         return AudioAssets[radioStation].ElementAt(randomIndex).Value;
     }
-
-    /*
-    //// The function below need some work
-
-    public AudioAsset[] GetClips(string radioStation, int clipsCap)
-    {
-        System.Random rnd = new();
-        AudioAsset[] audioAssetsArray = new AudioAsset[clipsCap];
-        Dictionary<string, AudioAsset> audioAssetsDictionary = AudioAssets[radioStation];
-        List<int> list = Enumerable.Range(0, audioAssetsDictionary.Count).OrderBy(_ => rnd.Next()).Take(clipsCap).ToList();
-
-        for(int index = 0; index < audioAssetsArray.Length; ++index)
-        {
-            KeyValuePair<string, AudioAsset> element = audioAssetsDictionary.ElementAt(list[index]);
-
-            if(Traverse.Create(element.Value).Field("m_Instance").GetValue() == null)
-            {
-                LoadAudioFile(element.Key, radioStation);
-            }
-
-            audioAssetsArray[index] = element.Value;
-        }
-
-
-        return audioAssetsArray;
-    }*/
 }
