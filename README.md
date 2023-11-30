@@ -46,6 +46,13 @@ You can add more Radios if you want, just by create a new folder like `Lounge Mu
 * **Experimental Mod:** Please note that CustomRadio is an experimental mod.
 * **Performance Impact:** All Ogg files inside the Radios folder are loaded at the start of a game, users should be aware of potential loading performance changes.
 
+## Feature roadmap
+
+- ❌ Loading music files on demand
+- ✔️ Loading Meta tag from the audio file. (Title, Author, ...)
+- ✔️ Randomise the clips.
+- ✔️ Add many Radios as you want
+
 ## Thanks
 
 [Cities2Modding](https://github.com/optimus-code/Cities2Modding): An example mod for starting modding in Cities: Skylines II
