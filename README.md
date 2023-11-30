@@ -13,10 +13,34 @@ This repository contains mods that offer minor quality-of-life improvements over
    * Download `BepInEx_x64_5.4.22.0.zip` (or a newer version), and unzip all of its contents into the game's installation directory, typically `C:/Steam/steamapps/common/Cities Skylines II`
    * The installation directory should now have the `BepInEx` folder, the `doorstop_config.ini` file, and the `winhttp.dll` file
 3. Run the game once, then close it. You can close it when the main menu appears
-4. Download the mod on release menu when available
+4. Download the mod [https://github.com/dragonofmercy/cs2-customradio/releases](https://github.com/dragonofmercy/cs2-customradio/releases)
 5. Unzip the downloaded file into the `Cities Skylines II/BepInEx/plugins` folder
    * Don't forget to uninstall the old version of the mod to avoid conflicts
 6. Launch the game, the mod should be loaded automatically
+
+## Customize Radios
+
+In the plugin folder you will find a Folder named `Radios`, this is the base folder that create a new Network in the game (just next to "Commercial radios").  
+The network name and description can be change using the `meta.json` file inside the `Radios` folder, you can change the SVG file if you want to change the icon.
+
+In the same folder you will find a `Lounge Music` folder, that's a radio sample, you can modifiy it in the same way as the network. This is where you add the various pieces of music you want to listen to.  
+**Be careful, the files must be in OGG format and adding a lot of files will affect the startup of your game.**
+
+You can add more Radios if you want, just by create a new folder like `Lounge Music`
+**SVG icon must be present inside the folder otherwise the radio will not be loaded**
+
+### Folder structure
+
+````
+├── CustomRadio.dll
+├── TagLibSharp.dll
+├── Radios
+│   ├── icon.svg
+│   ├── meta.json
+│   ├── Lounge Music
+│   │   ├── icon.svg
+│   │   ├── meta.json
+````
 
 ## Thanks
 
