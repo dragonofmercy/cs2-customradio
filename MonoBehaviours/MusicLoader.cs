@@ -1,76 +1,88 @@
-﻿using System;
+﻿using System.IO;
 using System.Collections.Generic;
-using System.IO;
-using Game.Audio.Radio;
-using CustomRadio.Models;
-using JetBrains.Annotations;
+using System.Linq;
+
+using HarmonyLib;
 using UnityEngine;
+using UnityEngine.Networking;
+
+using Colossal.IO.AssetDatabase;
+using Colossal.Json;
 
 namespace CustomRadio.MonoBehaviours;
 
 public class MusicLoader : MonoBehaviour
 {
-    public const string DefaultChannel = "The Second Moon";
+    public const string BASE_DIRECTORY = "Radios";
+    public const string BASE_NETWORK = "User Radios";
 
-    private readonly string AssemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
-    private readonly List<AudioSong> Songs = new List<AudioSong>();
-    private int PreviousIndex;
-    public static Radio RadioInstance { set; get; }
+    private readonly Dictionary<string, List<AudioAsset>> AudioAssets = new Dictionary<string, List<AudioAsset>>();
 
     private void Start()
     {
         DontDestroyOnLoad(this);
 
-        string musicDirectory = Path.Combine(Path.GetDirectoryName(AssemblyLocation), "Music");
+        string sNetworkDirectory = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), BASE_DIRECTORY);
 
-        if(Directory.Exists(musicDirectory))
-            LoadAllAudioClips(musicDirectory);
+        if(Directory.Exists(sNetworkDirectory))
+            LoadAllAudioClips(sNetworkDirectory);
     }
 
-    private void LoadAllAudioClips(string path)
+    private void LoadAllAudioClips(string sPath)
     {
-        string[] musicFiles = Directory.GetFiles(path, "*.ogg");
-
-        foreach(string musicFile in musicFiles)
+        foreach(string sRadioDirectory in Directory.GetDirectories(sPath))
         {
-            AudioSong song = new AudioSong(musicFile);
-            Songs.Add(song);
+            string sRadioName = new DirectoryInfo(sRadioDirectory).Name;
+
+            foreach(string oggFile in Directory.GetFiles(sRadioDirectory, "*.ogg"))
+            {
+                PreloadClip(oggFile, sRadioName);
+            }
         }
     }
 
-    public int CountFiles()
+    private async void PreloadClip(string sPath, string sRadioName)
     {
-        return Songs.Count;
+        using UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + sPath, AudioType.OGGVORBIS);
+        await www.SendWebRequest();
+        if (www.result is UnityWebRequest.Result.ConnectionError or UnityWebRequest.Result.ProtocolError)
+            Debug.Log(www.error);
+        AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
+        www.Dispose();
+
+        if(clip == null) return;
+
+        if(!AudioAssets.ContainsKey(sRadioName))
+            AudioAssets.Add(sRadioName, new List<AudioAsset>());
+
+        AudioAsset audioAsset = new();
+        Dictionary<AudioAsset.Metatag, string> metatags = new Dictionary<AudioAsset.Metatag, string>();
+
+        Traverse audioAssetTravers = Traverse.Create(audioAsset);
+        audioAssetTravers.Field("m_Instance").SetValue(clip);
+
+        TagLib.File tagFile = TagLib.File.Create(sPath);
+
+        metatags[AudioAsset.Metatag.Title] = tagFile.Tag.Title ?? Path.GetFileNameWithoutExtension(sPath);
+        metatags[AudioAsset.Metatag.Album] = tagFile.Tag.Album ?? "";
+        metatags[AudioAsset.Metatag.Artist] = tagFile.Tag.FirstPerformer ?? "";
+        metatags[AudioAsset.Metatag.Type] = "Music";
+        metatags[AudioAsset.Metatag.Brand] = "Brand";
+        metatags[AudioAsset.Metatag.RadioStation] = BASE_NETWORK;
+        metatags[AudioAsset.Metatag.RadioChannel] = sRadioName;
+        metatags[AudioAsset.Metatag.PSAType] = sPath;
+        metatags[AudioAsset.Metatag.AlertType] = "";
+        metatags[AudioAsset.Metatag.NewsType] = "";
+        metatags[AudioAsset.Metatag.WeatherType] = "";
+
+        audioAssetTravers.Field("m_Metatags").SetValue(metatags);
+        AudioAssets[sRadioName].Add(audioAsset);
+
+        Debug.Log("File loaded: " + Path.GetFileName(sPath));
     }
 
-    [CanBeNull]
-    public AudioSong GetRandomSong()
+    public AudioAsset[] GetClips(string radioStation)
     {
-        int randomIndex;
-
-        if(CountFiles() <= 0) return null;
-
-        do
-        {
-            randomIndex = UnityEngine.Random.Range(0, CountFiles());
-        }
-        while(PreviousIndex == randomIndex);
-
-        PreviousIndex = randomIndex;
-
-        return Songs[randomIndex];
-    }
-
-    [CanBeNull]
-    public AudioSong GetCurrentSong()
-    {
-        try
-        {
-            return Songs[PreviousIndex];
-        }
-        catch(IndexOutOfRangeException)
-        {
-            return null;
-        }
+        return AudioAssets[radioStation].ToArray();
     }
 }
