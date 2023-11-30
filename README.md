@@ -24,7 +24,7 @@ In the plugin folder you will find a Folder named `Radios`, this is the base fol
 The network name and description can be change using the `meta.json` file inside the `Radios` folder, you can change the SVG file if you want to change the icon.
 
 In the same folder you will find a `Lounge Music` folder, that's a radio sample, you can modifiy it in the same way as the network. This is where you add the various pieces of music you want to listen to.  
-**Be careful, the files must be in OGG format and adding a lot of files will affect the startup of your game.**
+**Be careful, the files must be in OGG format**
 
 You can add more Radios if you want, just by create a new folder like `Lounge Music`
 **SVG icon must be present inside the folder otherwise the radio will not be loaded**
@@ -43,7 +43,6 @@ You can add more Radios if you want, just by create a new folder like `Lounge Mu
 ## Important Warning
 
 * **Experimental Mod:** Please note that CustomRadio is an experimental mod.
-* **Performance Impact:** All Ogg files inside the Radios folder are loaded at the start of a game, users should be aware of potential loading performance changes.
 
 ## Feature roadmap
 
