@@ -33,7 +33,6 @@ You can add more Radios if you want, just by create a new folder like `Lounge Mu
 
 ````
 ├── CustomRadio.dll
-├── TagLibSharp.dll
 ├── Radios
 │   ├── icon.svg
 │   ├── meta.json
