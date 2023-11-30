@@ -5,8 +5,6 @@ using System.IO;
 using System.Reflection;
 using System.Collections.Generic;
 
-using Game;
-using Game.Audio;
 using Game.Audio.Radio;
 using Game.SceneFlow;
 using Game.UI;
@@ -18,20 +16,6 @@ using Colossal.Json;
 using Colossal.IO.AssetDatabase;
 
 namespace CustomRadio.Patches;
-
-/// <summary>
-/// AudioManager patches
-/// </summary>
-[HarmonyPatch(typeof(AudioManager), "OnGamePreload")]
-internal class AudioManagerOnGameLoadedPatch
-{
-    static void Postfix(GameMode mode)
-    {
-        if(mode != GameMode.Game) return;
-        GameObject musicLoader = new GameObject("MusicLoader");
-        musicLoader.AddComponent<MusicLoader>();
-    }
-}
 
 /// <summary>
 /// GameManager patches
@@ -58,18 +42,14 @@ internal class GameManagerInitializeThumbnailsPatch
 [HarmonyPatch(typeof(Radio), "LoadRadio")]
 internal class RadioLoadRadioPatch
 {
-    private static MusicLoader _MusicLoader;
+    public static readonly GameObject GameObjectMusicLoader = new("MusicLoader");
+    public static readonly MusicLoader MusicLoaderInstance = GameObjectMusicLoader.AddComponent<MusicLoader>( );
     public static readonly string RadioNetworkDirectory = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), MusicLoader.BASE_DIRECTORY);
     public static readonly List<string> RadioChannels = new List<string>();
 
     static void Postfix(Radio __instance)
     {
-        if(!Directory.Exists(RadioNetworkDirectory)) return;
-
-        if(_MusicLoader == null)
-            _MusicLoader = GameObject.Find("MusicLoader").GetComponent<MusicLoader>();
-
-        if(_MusicLoader == null) return;
+        if(MusicLoaderInstance == null || !Directory.Exists(RadioNetworkDirectory)) return;
 
         Traverse radioTravers = Traverse.Create(__instance);
 
@@ -149,11 +129,11 @@ internal class RadioLoadRadioPatch
         string sProgramName = "Music non stop";
         string sProgramDescription = "Dance all day, dance all night";
 
-        AudioAsset[] audioAsset = _MusicLoader.GetClips(sRadioName);
+        AudioAsset[] audioAsset = MusicLoaderInstance.GetAllClips(sRadioName);
 
         Radio.Segment segment = new(){
             type = Radio.SegmentType.Playlist,
-            clipsCap = 2,
+            clipsCap = 1,
             clips = audioAsset,
             tags = new []{
                 "type:Music",
@@ -202,8 +182,11 @@ internal class RadioLoadRadioPatch
 [HarmonyPatch(typeof(Radio), "GetPlaylistClips")]
 internal class RadioGetPlaylistClipsPatch
 {
-    static bool Prefix(Radio __instance)
+    static bool Prefix(Radio.RuntimeSegment segment, Radio __instance)
     {
-        return !RadioLoadRadioPatch.RadioChannels.Contains(__instance.currentChannel.name);
+        if(!RadioLoadRadioPatch.RadioChannels.Contains(__instance.currentChannel.name)) return true;
+        if(RadioLoadRadioPatch.MusicLoaderInstance == null) return false;
+        segment.clips = new []{ RadioLoadRadioPatch.MusicLoaderInstance.GetRandomClip(__instance.currentChannel.name) };
+        return false;
     }
 }
