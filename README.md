@@ -48,17 +48,14 @@ You can add more Radios if you want, just by create a new folder like `Lounge Mu
 
 ## Feature roadmap
 
-- ❌ Loading music files on demand
+- ✔️ Loading music files on demand
 - ✔️ Loading Meta tag from the audio file. (Title, Author, ...)
 - ✔️ Randomise the clips.
 - ✔️ Add many Radios as you want
 
 ## Thanks
 
-[Cities2Modding](https://github.com/optimus-code/Cities2Modding): An example mod for starting modding in Cities: Skylines II
-
-[BepInEx](https://github.com/BepInEx/BepInEx): Unity / XNA game patcher and plugin framework
-
-[Harmony](https://github.com/pardeike/Harmony): A library for patching, replacing and decorating .NET and Mono methods during runtime
-
-[AlphaGaming7780](https://github.com/AlphaGaming7780): Made the first mod of custom radio where this mod is based on
+[Cities2Modding](https://github.com/optimus-code/Cities2Modding): An example mod for starting modding in Cities: Skylines II  
+[BepInEx](https://github.com/BepInEx/BepInEx): Unity / XNA game patcher and plugin framework  
+[Harmony](https://github.com/pardeike/Harmony): A library for patching, replacing and decorating .NET and Mono methods during runtime  
+[AlphaGaming7780](https://github.com/AlphaGaming7780): Made the first mod of custom radio where this mod is based on  
