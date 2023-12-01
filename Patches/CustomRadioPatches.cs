@@ -1,6 +1,6 @@
-﻿using System;
-using CustomRadio.MonoBehaviours;
+﻿using CustomRadio.MonoBehaviours;
 
+using System;
 using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -54,24 +54,25 @@ internal class AudioAssetLoadAsyncPatch
     private static async Task<AudioClip> LoadAudioFile(AudioAsset audioAsset)
     {
         Traverse audioAssetTravers = Traverse.Create(audioAsset);
+        AudioClip mInstance = audioAssetTravers.Field("m_Instance").GetValue<AudioClip>();
+        List<string> mTags = audioAssetTravers.Field("m_Tags").GetValue<List<string>>();
 
-        if(audioAssetTravers.Field("m_Instance").GetValue() == null)
-        {
-            string sPath = audioAsset.GetMetaTag(AudioAsset.Metatag.Brand);
-            using UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + sPath, AudioType.OGGVORBIS);
-            ((DownloadHandlerAudioClip) www.downloadHandler).streamAudio = true;
-            await www.SendWebRequest();
-            AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
-            www.Dispose();
+        if(mInstance != null || mTags == null) return mInstance;
 
-            clip.name = sPath;
-            clip.hideFlags = HideFlags.DontSave;
+        string sPath = mTags[0];
+        using UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + sPath, AudioType.OGGVORBIS);
+        ((DownloadHandlerAudioClip) www.downloadHandler).streamAudio = true;
+        await www.SendWebRequest();
+        mInstance = DownloadHandlerAudioClip.GetContent(www);
+        www.Dispose();
 
-            audioAssetTravers.Field("m_Instance").SetValue(clip);
-            Debug.Log("File loaded: " + Path.GetFileName(sPath));
-        }
+        mInstance.name = sPath;
+        mInstance.hideFlags = HideFlags.DontSave;
 
-        return (AudioClip) audioAssetTravers.Field("m_Instance").GetValue();
+        audioAssetTravers.Field("m_Instance").SetValue(mInstance);
+        Debug.Log("File loaded: " + Path.GetFileName(sPath));
+
+        return mInstance;
     }
 }
 
@@ -225,7 +226,7 @@ internal class RadioGetPlaylistClipsPatch
     {
         if(!RadioLoadRadioPatch.RadioChannels.Contains(__instance.currentChannel.name)) return true;
         if(RadioLoadRadioPatch.MusicLoaderInstance == null) return false;
-        segment.clips = new []{ RadioLoadRadioPatch.MusicLoaderInstance.GetRandomClip(__instance.currentChannel.name) };
+        segment.clips = new []{ RadioLoadRadioPatch.MusicLoaderInstance.GetNextClip(__instance.currentChannel.name) };
         return false;
     }
 }
