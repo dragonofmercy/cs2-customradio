@@ -19,6 +19,12 @@ public class MusicLoader : MonoBehaviour
     private int PreviousIndex = -1;
     private int CurrentIndex;
 
+    public enum ClipOrder
+    {
+        Random,
+        Sequence
+    }
+
     public MusicLoader()
     {
         string sNetworkDirectory = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), BASE_DIRECTORY);
