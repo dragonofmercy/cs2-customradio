@@ -1,6 +1,6 @@
 ﻿using System.IO;
-using System.Collections.Generic;
 using System.Linq;
+using System.Collections.Generic;
 
 using ATL;
 using HarmonyLib;
@@ -15,8 +15,9 @@ public class MusicLoader : MonoBehaviour
     public const string BASE_DIRECTORY = "Radios";
     public const string BASE_NETWORK = "User Radios";
 
-    private int PreviousIndex = -1;
     private readonly Dictionary<string, Dictionary<string, AudioAsset>> AudioAssets = new Dictionary<string, Dictionary<string, AudioAsset>>();
+    private int PreviousIndex = -1;
+    private int CurrentIndex;
 
     public MusicLoader()
     {
@@ -51,13 +52,15 @@ public class MusicLoader : MonoBehaviour
         metatags[AudioAsset.Metatag.Album] = track.Album;
         metatags[AudioAsset.Metatag.Artist] = track.Artist;
         metatags[AudioAsset.Metatag.Type] = "Music";
-        metatags[AudioAsset.Metatag.Brand] = sPath;
+        metatags[AudioAsset.Metatag.Brand] = "Brand";
         metatags[AudioAsset.Metatag.RadioStation] = BASE_NETWORK;
         metatags[AudioAsset.Metatag.RadioChannel] = sRadioName;
         metatags[AudioAsset.Metatag.PSAType] = "";
         metatags[AudioAsset.Metatag.AlertType] = "";
         metatags[AudioAsset.Metatag.NewsType] = "";
         metatags[AudioAsset.Metatag.WeatherType] = "";
+
+        audioAsset.AddTag(sPath);
 
         audioAssetTravers.Field("m_Metatags").SetValue(metatags);
         audioAssetTravers.Field("m_Instance").SetValue(null);
@@ -68,6 +71,18 @@ public class MusicLoader : MonoBehaviour
     public AudioAsset[] GetAllClips(string radioStation)
     {
         return AudioAssets[radioStation].Values.ToArray();
+    }
+
+    public AudioAsset GetNextClip(string radioStation)
+    {
+        if(CurrentIndex > AudioAssets[radioStation].Count - 1)
+        {
+            CurrentIndex = 0;
+        }
+
+        AudioAsset result = AudioAssets[radioStation].ElementAt(CurrentIndex).Value;
+        CurrentIndex++;
+        return result;
     }
 
     public AudioAsset GetRandomClip(string radioStation)
