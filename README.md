@@ -27,7 +27,6 @@ In the same folder you will find a `Lounge Music` folder, that's a radio sample,
 **Be careful, the files must be in OGG format**
 
 You can add more Radios if you want, just by create a new folder like `Lounge Music`
-**SVG icon must be present inside the folder otherwise the radio will not be loaded**
 
 ### Folder structure
 
@@ -46,10 +45,10 @@ You can add more Radios if you want, just by create a new folder like `Lounge Mu
 
 ## Feature roadmap
 
-- ✔️ Loading music files on demand
-- ✔️ Loading Meta tag from the audio file. (Title, Author, ...)
-- ✔️ Randomise the clips.
-- ✔️ Add many Radios as you want
+✔️ Loading music files on demand  
+✔️ Loading Meta tag from the audio file. (Title, Author, ...)  
+✔️ Randomise the clips.  
+✔️ Add many Radios as you want
 
 ## Thanks
 
