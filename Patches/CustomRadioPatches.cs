@@ -185,8 +185,16 @@ internal class RadioLoadRadioPatch
             sRadioName = config.TryGet("radio_name") ?? sRadioName;
             sProgramName = config.TryGet("program_name") ?? sProgramName;
             sProgramDescription = config.TryGet("program_description") ?? sProgramDescription;
-            clipOrder = config.TryGet("clip_order") == "sequence" ? MusicLoader.ClipOrder.Sequence : MusicLoader.ClipOrder.Random;
             uiPriority = config.TryGet("order") ?? uiPriority;
+
+            if(config.TryGet("clip_order") != null)
+            {
+                clipOrder = config.TryGet("clip_order") == "sequence" ? MusicLoader.ClipOrder.Sequence : MusicLoader.ClipOrder.Random;
+            }
+            else
+            {
+                clipOrder = MusicLoader.ClipOrder.Sequence;
+            }
         }
 
         Radio.Program program = new(){
