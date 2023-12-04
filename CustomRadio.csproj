@@ -27,7 +27,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Reference Include="unstripped_libs/*.dll" Private="False"/>
+        <Reference Include="../0Common/libs/*.dll" Private="False"/>
     </ItemGroup>
 	
 	<ItemGroup>
