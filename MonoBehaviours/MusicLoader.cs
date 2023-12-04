@@ -7,6 +7,7 @@ using HarmonyLib;
 using UnityEngine;
 
 using Colossal.IO.AssetDatabase;
+using CustomRadio.Models;
 
 namespace CustomRadio.MonoBehaviours;
 
@@ -15,7 +16,8 @@ public class MusicLoader : MonoBehaviour
     public const string BASE_DIRECTORY = "Radios";
     public const string BASE_NETWORK = "User Radios";
 
-    private readonly Dictionary<string, Dictionary<string, AudioAsset>> AudioAssets = new Dictionary<string, Dictionary<string, AudioAsset>>();
+    public static readonly Dictionary<string, CustomRadioChannel> CustomRadioChannels = new Dictionary<string, CustomRadioChannel>();
+
     private int PreviousIndex = -1;
     private int CurrentIndex;
 
@@ -37,12 +39,11 @@ public class MusicLoader : MonoBehaviour
         foreach(string sRadioDirectory in Directory.GetDirectories(sPath))
         {
             string sRadioName = new DirectoryInfo(sRadioDirectory).Name;
-            if(!AudioAssets.ContainsKey(sRadioName))
-                AudioAssets.Add(sRadioName, new Dictionary<string, AudioAsset>());
+            CustomRadioChannels.TryAdd(sRadioDirectory, new CustomRadioChannel{ DirectoryName = sRadioDirectory });
 
             foreach(string oggFile in Directory.GetFiles(sRadioDirectory, "*.ogg"))
             {
-                AudioAssets[sRadioName].Add(oggFile, CreateAudioAsset(oggFile, sRadioName));
+                CustomRadioChannels[sRadioDirectory].AudioAssets.Add(oggFile, CreateAudioAsset(oggFile, sRadioName));
             }
         }
     }
@@ -66,7 +67,8 @@ public class MusicLoader : MonoBehaviour
         metatags[AudioAsset.Metatag.NewsType] = "";
         metatags[AudioAsset.Metatag.WeatherType] = "";
 
-        audioAsset.AddTag(sPath);
+        audioAsset.AddTag("path:" + sPath);
+        audioAsset.AddTag("custom:true");
 
         audioAssetTravers.Field("m_Metatags").SetValue(metatags);
         audioAssetTravers.Field("m_Instance").SetValue(null);
@@ -74,19 +76,19 @@ public class MusicLoader : MonoBehaviour
         return audioAsset;
     }
 
-    public AudioAsset[] GetAllClips(string radioStation)
+    public static AudioAsset[] GetAllClips(string radioStation)
     {
-        return AudioAssets[radioStation].Values.ToArray();
+        return CustomRadioChannels[radioStation].AudioAssets.Values.ToArray();
     }
 
     public AudioAsset GetNextClip(string radioStation)
     {
-        if(CurrentIndex > AudioAssets[radioStation].Count - 1)
+        if(CurrentIndex > CustomRadioChannels[radioStation].AudioAssets.Count - 1)
         {
             CurrentIndex = 0;
         }
 
-        AudioAsset result = AudioAssets[radioStation].ElementAt(CurrentIndex).Value;
+        AudioAsset result = CustomRadioChannels[radioStation].AudioAssets.ElementAt(CurrentIndex).Value;
         CurrentIndex++;
         return result;
     }
@@ -97,11 +99,11 @@ public class MusicLoader : MonoBehaviour
 
         do
         {
-            randomIndex = Random.Range(0, AudioAssets[radioStation].Count);
+            randomIndex = Random.Range(0, CustomRadioChannels[radioStation].AudioAssets.Count);
         }
         while(PreviousIndex == randomIndex);
         PreviousIndex = randomIndex;
 
-        return AudioAssets[radioStation].ElementAt(randomIndex).Value;
+        return CustomRadioChannels[radioStation].AudioAssets.ElementAt(randomIndex).Value;
     }
 }

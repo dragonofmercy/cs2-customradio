@@ -1,4 +1,5 @@
-﻿using CustomRadio.MonoBehaviours;
+﻿using CustomRadio.Models;
+using CustomRadio.MonoBehaviours;
 
 using System;
 using System.IO;
@@ -46,7 +47,8 @@ internal class AudioAssetLoadAsyncPatch
 {
     static bool Prefix(AudioAsset __instance, ref Task<AudioClip> __result)
     {
-        if(__instance.GetMetaTag(AudioAsset.Metatag.RadioStation) != MusicLoader.BASE_NETWORK) return true;
+        List<string> mTags = Traverse.Create(__instance).Field("m_Tags").GetValue<List<string>>();
+        if(mTags?.Find(s => s.Contains("custom:true")) == null) return true;
         __result = LoadAudioFile(__instance);
         return false;
     }
@@ -59,7 +61,7 @@ internal class AudioAssetLoadAsyncPatch
 
         if(mInstance != null || mTags == null) return mInstance;
 
-        string sPath = mTags[0];
+        string sPath = mTags.Find(s => s.StartsWith("path:")).Replace("path:", "");
         using UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + sPath, AudioType.OGGVORBIS);
         ((DownloadHandlerAudioClip) www.downloadHandler).streamAudio = true;
         await www.SendWebRequest();
@@ -83,9 +85,8 @@ internal class AudioAssetLoadAsyncPatch
 internal class RadioLoadRadioPatch
 {
     public static readonly GameObject GameObjectMusicLoader = new("MusicLoader");
-    public static readonly MusicLoader MusicLoaderInstance = GameObjectMusicLoader.AddComponent<MusicLoader>( );
+    public static readonly MusicLoader MusicLoaderInstance = GameObjectMusicLoader.AddComponent<MusicLoader>();
     public static readonly string RadioNetworkDirectory = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), MusicLoader.BASE_DIRECTORY);
-    public static readonly Dictionary<string, MusicLoader.ClipOrder> RadioChannels = new Dictionary<string, MusicLoader.ClipOrder>();
 
     static void Postfix(Radio __instance)
     {
@@ -98,7 +99,6 @@ internal class RadioLoadRadioPatch
 
         string sRadioNetworkName = "User Radios";
         string sRadioNetworkDescription = "Custom User Radios";
-        int intRadioNetworkIndex = mNetworks.Count - 1;
 
         if(mNetworks.ContainsKey(sRadioNetworkName) &&
            Directory.GetDirectories(RadioNetworkDirectory).Length == 0 &&
@@ -109,15 +109,8 @@ internal class RadioLoadRadioPatch
         {
             Variant config = JSON.Load(File.ReadAllText(Path.Combine(RadioNetworkDirectory, "meta.json")));
 
-            try
-            {
-                sRadioNetworkName = config.TryGet("name") ?? sRadioNetworkName;
-                sRadioNetworkDescription = config.TryGet("description") ?? sRadioNetworkDescription;
-            }
-            catch(Exception)
-            {
-                // Do nothing
-            }
+            sRadioNetworkName = config.TryGet("name") ?? sRadioNetworkName;
+            sRadioNetworkDescription = config.TryGet("description") ?? sRadioNetworkDescription;
         }
 
         Radio.RadioNetwork network = new(){
@@ -126,25 +119,22 @@ internal class RadioLoadRadioPatch
             description = sRadioNetworkDescription,
             descriptionId = sRadioNetworkDescription,
             icon = $"{GameManagerInitializeThumbnailsPatch.COUI_BASE_LOCATION}/Radios/icon.svg",
-            uiPriority = intRadioNetworkIndex,
+            uiPriority = mNetworks.Count,
             allowAds = false
         };
 
         mNetworks.Add(network.name, network);
 
-        foreach(string sRadioStationPath in Directory.GetDirectories(RadioNetworkDirectory))
+        foreach(KeyValuePair<string, CustomRadioChannel> kvCustomRadioChannel in MusicLoader.CustomRadioChannels)
         {
-            MusicLoader.ClipOrder refClipOrder = MusicLoader.ClipOrder.Random;
-            Radio.RadioChannel radioChannel = CreateRadioStation(sRadioStationPath, network.name, ref refClipOrder);
-            string sChannelNameId = radioChannel.name;
-
+            CreateRadioStation(kvCustomRadioChannel.Value, network.name);
+            string sChannelNameId = kvCustomRadioChannel.Value.Channel.name;
             while(mRadioChannels.ContainsKey(sChannelNameId))
             {
                 sChannelNameId = sChannelNameId + "_" + radioTravers.Method("MakeUniqueRandomName", sChannelNameId, 4).GetValue<string>();
             }
 
-            mRadioChannels.Add(sChannelNameId, radioChannel.CreateRuntime(sRadioStationPath));
-            RadioChannels.Add(radioChannel.name, refClipOrder);
+            mRadioChannels.Add(sChannelNameId, kvCustomRadioChannel.Value.Channel.CreateRuntime(kvCustomRadioChannel.Key));
         }
 
         radioTravers.Field("m_Networks").SetValue(mNetworks);
@@ -152,15 +142,17 @@ internal class RadioLoadRadioPatch
         radioTravers.Field("m_CachedRadioChannelDescriptors").SetValue(null);
     }
 
-    private static Radio.RadioChannel CreateRadioStation(string path, string radioNetwork, ref MusicLoader.ClipOrder clipOrder)
+    private static void CreateRadioStation(CustomRadioChannel customRadioChannel, string radioNetwork)
     {
-        string sRadioName = new DirectoryInfo(path).Name;
+        string sPath = customRadioChannel.DirectoryName;
+        string sRadioName = new DirectoryInfo(sPath).Name;
+
         List<string> thumbnailPath = new List<string>{
             GameManagerInitializeThumbnailsPatch.COUI_BASE_LOCATION,
             MusicLoader.BASE_DIRECTORY
         };
 
-        if(File.Exists(Path.Combine(path, "icon.svg")))
+        if(File.Exists(Path.Combine(sPath, "icon.svg")))
         {
             thumbnailPath.Add(sRadioName);
         }
@@ -170,26 +162,31 @@ internal class RadioLoadRadioPatch
         string sRadioIcon = string.Join("/", thumbnailPath.ToArray());
         string sProgramName = "Music non stop";
         string sProgramDescription = "Dance all day, dance all night";
-
-        AudioAsset[] audioAssets = MusicLoaderInstance.GetAllClips(sRadioName);
+        int uiPriority = 1;
 
         Radio.Segment segment = new(){
             type = Radio.SegmentType.Playlist,
             clipsCap = 1,
-            clips = audioAssets,
+            clips = MusicLoader.GetAllClips(sPath),
             tags = new []{
                 "type:Music",
-                "radio channel:" + sRadioName
+                "radio channel:" + sRadioName,
+                "custom:true",
+                "path:" + sPath
             }
         };
 
-        if(File.Exists(Path.Combine(path, "meta.json")))
-        {
-            Variant config = JSON.Load(File.ReadAllText(Path.Combine(path, "meta.json")));
+        MusicLoader.ClipOrder clipOrder = MusicLoader.ClipOrder.Sequence;
 
+        if(File.Exists(Path.Combine(sPath, "meta.json")))
+        {
+            Variant config = JSON.Load(File.ReadAllText(Path.Combine(sPath, "meta.json")));
+
+            sRadioName = config.TryGet("radio_name") ?? sRadioName;
             sProgramName = config.TryGet("program_name") ?? sProgramName;
             sProgramDescription = config.TryGet("program_description") ?? sProgramDescription;
             clipOrder = config.TryGet("clip_order") == "sequence" ? MusicLoader.ClipOrder.Sequence : MusicLoader.ClipOrder.Random;
+            uiPriority = config.TryGet("order") ?? uiPriority;
         }
 
         Radio.Program program = new(){
@@ -207,22 +204,23 @@ internal class RadioLoadRadioPatch
             name = sRadioName,
             description = "",
             icon = sRadioIcon,
-            uiPriority = 1,
+            uiPriority = uiPriority,
             programs = new[]{ program }
         };
 
-        return radioChannel;
+        customRadioChannel.ClipOrder = clipOrder;
+        customRadioChannel.Channel = radioChannel;
     }
 }
 
 [HarmonyPatch(typeof(Radio), "GetPlaylistClips")]
 internal class RadioGetPlaylistClipsPatch
 {
-    static bool Prefix(Radio.RuntimeSegment segment, Radio __instance)
+    static bool Prefix(Radio.RuntimeSegment segment)
     {
-        string sChannelName = __instance.currentChannel.name;
-        if(!RadioLoadRadioPatch.RadioChannels.ContainsKey(sChannelName)) return true;
-        AudioAsset audioAsset = RadioLoadRadioPatch.RadioChannels[sChannelName] == MusicLoader.ClipOrder.Sequence ? RadioLoadRadioPatch.MusicLoaderInstance.GetNextClip(sChannelName) : RadioLoadRadioPatch.MusicLoaderInstance.GetRandomClip(sChannelName);
+        if(Array.Find(segment.tags, s => s.Contains("custom:true")) == null) return true;
+        string sPath = Array.Find(segment.tags, s => s.StartsWith("path:")).Replace("path:", "");
+        AudioAsset audioAsset = MusicLoader.CustomRadioChannels[sPath].ClipOrder == MusicLoader.ClipOrder.Sequence ? RadioLoadRadioPatch.MusicLoaderInstance.GetNextClip(sPath) : RadioLoadRadioPatch.MusicLoaderInstance.GetRandomClip(sPath);
         segment.clips = new []{ audioAsset };
         return false;
     }
