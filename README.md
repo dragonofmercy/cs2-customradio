@@ -1,3 +1,6 @@
+> [!WARNING]  
+> The project has been merged with https://github.com/dragonofmercy/cs2modding
+
 This repository contains mods that offer minor quality-of-life improvements over the base game of Cities: Skylines II.
 
 **Disclaimer: These modifications are highly experimental. Your game may crash more frequently, and your save files could be corrupted.**
